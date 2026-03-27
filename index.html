@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>書類ジェネレーター</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&family=Noto+Serif+JP:wght@400;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #eeecea; --surface: #fff; --border: #ddd9d0; --border-mid: #c4bfb5;
+    --text: #191816; --muted: #6b6760; --accent: #1e3f80; --accent-lite: #e6ecf8;
+    --sans: 'Noto Sans JP', sans-serif; --serif: 'Noto Serif JP', serif;
+  }
+  body { font-family: var(--sans); background: var(--bg); font-size: 14px; }
+  .screen { display: flex; min-height: 100vh; }
+  .sidebar { width: 360px; min-width: 360px; background: var(--surface); border-right: 1px solid var(--border); padding: 1.25rem; overflow-y: auto; height: 100vh; position: sticky; top: 0; }
+  .sidebar-title { font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: .75rem; }
+  .doc-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 1.25rem; }
+  .doc-tab { padding: 6px 2px; background: none; border: 1px solid var(--border); border-radius: 5px; font-family: var(--sans); font-size: 10px; color: var(--muted); cursor: pointer; text-align: center; transition: all .15s; white-space: nowrap; }
+  .doc-tab:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lite); }
+  .doc-tab.active { background: var(--accent); color: white; border-color: var(--accent); font-weight: 600; }
+  .no-row { display: flex; gap: 4px; align-items: center; }
+  .no-row input { flex: 1; }
+  .btn-no { width: 28px; height: 30px; background: none; border: 1px solid var(--border); border-radius: 5px; font-family: var(--sans); font-size: 14px; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; flex-shrink: 0; }
+  .btn-no:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lite); }
+  .sec-label { font-size: 10px; font-weight: 600; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 7px; }
+  .f { margin-bottom: 5px; }
+  .f label { display: block; font-size: 10px; color: var(--muted); margin-bottom: 2px; }
+  .f input, .f select, .f textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 5px; font-family: var(--sans); font-size: 12px; background: var(--surface); color: var(--text); outline: none; transition: border-color .15s; }
+  .f input:focus, .f select:focus, .f textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(30,63,128,.07); }
+  .f textarea { resize: vertical; min-height: 52px; }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .items-hd { display: grid; grid-template-columns: 1fr 48px 72px 20px; gap: 3px; font-size: 9px; color: var(--muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 0 2px; margin-bottom: 3px; }
+  .item-row { display: grid; grid-template-columns: 1fr 48px 72px 20px; gap: 3px; align-items: center; margin-bottom: 3px; }
+  .item-row input { padding: 5px 6px; font-size: 11px; }
+  .item-row input[type=number] { text-align: right; }
+  .btn-del { width: 20px; height: 20px; background: none; border: 1px solid var(--border); border-radius: 3px; cursor: pointer; color: var(--muted); font-size: 13px; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .btn-del:hover { background: #fdf2f2; border-color: #b33; color: #b33; }
+  .btn-add { width: 100%; padding: 7px; background: none; border: 1px dashed var(--border-mid); border-radius: 5px; font-family: var(--sans); font-size: 11px; color: var(--muted); cursor: pointer; margin-top: 4px; transition: all .15s; }
+  .btn-add:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lite); }
+  .tax-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .tax-row label { font-size: 11px; color: var(--muted); }
+  .tax-row select { width: auto; padding: 4px 7px; font-size: 12px; }
+  .btn-print { width: 100%; padding: 11px; background: var(--accent); color: #fff; border: none; border-radius: 7px; font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer; margin-top: 1rem; letter-spacing: .05em; transition: background .15s; }
+  .btn-print:hover { background: #152e60; }
+  .c-opt-btn { font-size:10px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:none;cursor:pointer;font-family:var(--sans);color:var(--muted);transition:all .15s; }
+  .hon-btn { font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:none;cursor:pointer;font-family:var(--sans);color:var(--muted);transition:all .15s; }
+  .hon-btn.active { background:var(--accent);color:white;border-color:var(--accent); }
+  .preview-area { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 2rem 4rem; }
+  .a4 { width: 794px; min-height: 1123px; background: white; box-shadow: 0 4px 24px rgba(0,0,0,.12); padding: 52px 56px; font-family: var(--sans); font-size: 13px; color: var(--text); line-height: 1.6; position: relative; }
+  .inv-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; border-bottom: 2px solid var(--text); padding-bottom: 16px; }
+  .inv-doc-title { font-family: var(--serif); font-size: 26px; font-weight: 600; letter-spacing: .1em; }
+  .inv-meta-block { text-align: right; font-size: 11px; line-height: 2; color: var(--muted); }
+  .inv-meta-block strong { color: var(--text); font-weight: 600; }
+  .inv-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 22px; }
+  .pty-label { font-size: 9px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+  .pty-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+  .pty-detail { font-size: 11px; color: var(--muted); line-height: 1.7; }
+  .stamp-row { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+  .stamp-box { width: 54px; height: 54px; border: 1.5px solid #bbb; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #bbb; letter-spacing: .05em; }
+  .inv-banner { background: var(--accent); color: #fff; padding: 14px 18px; border-radius: 5px; display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
+  .banner-label { font-size: 11px; letter-spacing: .06em; opacity: .82; }
+  .banner-amt { font-size: 24px; font-weight: 600; font-family: var(--serif); }
+  .inv-tbl { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  .inv-tbl th { font-size: 9px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); border-bottom: 1.5px solid #ccc; padding: 7px 6px; text-align: left; }
+  .inv-tbl th:not(:first-child) { text-align: right; }
+  .inv-tbl td { padding: 9px 6px; font-size: 12px; border-bottom: .5px solid #e8e4dc; vertical-align: middle; }
+  .inv-tbl td:not(:first-child) { text-align: right; }
+  .inv-tbl tr:last-child td { border-bottom: none; }
+  .inv-totals { margin-left: auto; width: 210px; margin-bottom: 22px; }
+  .tot-row { display: flex; justify-content: space-between; font-size: 12px; padding: 5px 0; border-bottom: .5px solid #e0ddd5; }
+  .tot-row:last-child { font-weight: 600; font-size: 13px; border-bottom: none; padding-top: 7px; }
+  .inv-footer { border-top: .5px solid #ccc; padding-top: 14px; margin-top: 4px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .footer-block { font-size: 10.5px; color: var(--text); line-height: 1.85; padding: 10px 14px; border-left: 3px solid var(--accent); background: #f4f6fb; border-radius: 0 4px 4px 0; }
+  .footer-block strong { font-size: 9px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; display: block; margin-bottom: 5px; color: var(--accent); }
+  .contract-body { font-size: 12.5px; line-height: 2; color: var(--text); }
+  .contract-body h2 { font-size: 13px; font-weight: 600; margin: 20px 0 6px; border-bottom: .5px solid #ccc; padding-bottom: 4px; }
+  .contract-body p { margin-bottom: 8px; text-indent: 1em; }
+  .contract-body .article { margin-bottom: 16px; page-break-inside: avoid; }
+  .contract-sigs { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; border-top: .5px solid #ccc; padding-top: 24px; }
+  .sig-block { font-size: 11px; color: var(--muted); line-height: 2; }
+  .sig-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .sig-stamp { width: 54px; height: 54px; border: 1.5px solid #bbb; margin-top: 8px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #bbb; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="sidebar">
+    <div class="doc-tabs" style="grid-template-columns:repeat(3,1fr)">
+      <button class="doc-tab active" onclick="setDoc('invoice',this)">請求書</button>
+      <button class="doc-tab" onclick="setDoc('estimate',this)">見積書</button>
+      <button class="doc-tab" onclick="setDoc('delivery',this)">納品書</button>
+      <button class="doc-tab" onclick="setDoc('order',this)">発注書</button>
+      <button class="doc-tab" onclick="setDoc('receipt',this)">領収書</button>
+      <button class="doc-tab" onclick="setDoc('contract',this)">契約書</button>
+    </div>
+    <div class="sec">
+      <div class="sec-label">書類情報</div>
+      <div class="f">
+        <label id="no-label">請求書番号 <span style="font-weight:400;font-size:9px;color:var(--muted)">（空欄で非表示）</span></label>
+        <div class="no-row">
+          <button class="btn-no" onclick="stepNo(-1)">－</button>
+          <input id="no" value="INV-2026-001" oninput="r()" placeholder="空欄で非表示">
+          <button class="btn-no" onclick="stepNo(1)">＋</button>
+        </div>
+      </div>
+      <div class="f"><label>発行日</label><input id="date" type="date" oninput="r()"></div>
+      <div class="f" id="due-wrap"><label id="due-label">支払期限</label><input id="due" type="date" oninput="r()"></div>
+      <div class="f" id="valid-wrap" style="display:none"><label>有効期限</label><input id="valid" type="date" oninput="r()"></div>
+      <div class="f" id="delivery-wrap" style="display:none"><label>納品日</label><input id="delivery-date" type="date" oninput="r()"></div>
+    </div>
+    <div class="sec">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;border-bottom:1px solid var(--border);padding-bottom:4px">
+        <div class="sec-label" id="from-label" style="border:none;margin:0;padding:0">発行者</div>
+        <button onclick="saveProfile()" style="font-size:10px;padding:3px 8px;background:none;border:1px solid var(--border-mid);border-radius:4px;cursor:pointer;font-family:var(--sans);color:var(--muted);transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border-mid)';this.style.color='var(--muted)'" id="save-btn">保存</button>
+      </div>
+      <div class="f"><label>事業者名 / 屋号</label><input id="fn" placeholder="みかづきデザイン" oninput="r()"></div>
+      <div class="f"><label>郵便番号</label><input id="fzip" placeholder="680-0000" maxlength="8" oninput="r()"></div>
+      <div class="f"><label>住所</label><input id="fa" placeholder="鳥取市○○町1-2-3" oninput="r()"></div>
+      <div class="g2">
+        <div class="f"><label>TEL</label><input id="ft" placeholder="0857-XX-XXXX" oninput="r()"></div>
+        <div class="f"><label>Email</label><input id="fe" placeholder="your@email.com" oninput="r()"></div>
+      </div>
+      <div class="f" id="bank-wrap"><label>振込先</label><textarea id="bank" placeholder="〇〇銀行 △△支店&#10;普通 1234567&#10;ミカヅキ タロウ" oninput="r()" onblur="saveProfile()"></textarea></div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase">インボイス登録番号</span>
+          <button id="inv-toggle" onclick="toggleInv()" style="font-size:10px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:none;cursor:pointer;font-family:var(--sans);color:var(--muted);transition:all .15s">OFF</button>
+        </div>
+        <div id="inv-reg-wrap" style="display:none">
+          <div class="f"><label>登録番号（T + 13桁）</label><input id="reg" placeholder="T1234567890123" oninput="r();saveProfile()"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+          <span style="font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase">印鑑欄</span>
+          <button id="stamp-toggle" onclick="toggleStamp()" style="font-size:10px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:none;cursor:pointer;font-family:var(--sans);color:var(--muted);transition:all .15s">OFF</button>
+        </div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-label" id="to-label">請求先</div>
+      <div class="f"><label>会社名・氏名</label><input id="tn" placeholder="株式会社○○" oninput="r()"></div>
+      <div class="f">
+        <label>敗称</label>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="hon-btn active" onclick="setHon('御中',this)">御中</button>
+          <button class="hon-btn" onclick="setHon('様',this)">様</button>
+          <button class="hon-btn" onclick="setHon('殺',this)">殺</button>
+          <button class="hon-btn" onclick="setHon('',this)">なし</button>
+        </div>
+      </div>
+      <div class="f"><label>担当者（任意）</label><input id="tp" placeholder="山田 太郎 様" oninput="r()"></div>
+      <div class="f"><label>郵便番号（任意）</label><input id="tzip" placeholder="150-0000" maxlength="8" oninput="r()"></div>
+      <div class="f"><label>住所（任意）</label><input id="ta" placeholder="東京都渋谷区○○1-2-3" oninput="r()"></div>
+    </div>
+    <div class="sec" id="items-sec">
+      <div class="sec-label">品目</div>
+      <div class="items-hd" id="items-hd"><span>内容</span><span style="text-align:right">数量</span><span style="text-align:right">単価（税抜）</span><span></span></div>
+      <div id="ilist"></div>
+      <button class="btn-add" onclick="addItem()">＋ 品目を追加</button>
+      <div class="tax-row" id="tax-wrap">
+        <label>消費税率</label>
+        <select id="tax" onchange="r()">
+          <option value="0.10">10%</option>
+          <option value="0.08">8%（軽減）</option>
+          <option value="0">非課税</option>
+        </select>
+      </div>
+      <div class="invoice-only" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase">税込金額を指定（逆算）</span>
+          <button id="rev-toggle" onclick="toggleRev()" style="font-size:10px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:none;cursor:pointer;font-family:var(--sans);color:var(--muted);transition:all .15s">OFF</button>
+        </div>
+        <div id="rev-wrap" style="display:none">
+          <div class="f"><label>税込合計金額（円）</label><input id="rev-total" type="number" placeholder="80000" min="0" step="100" oninput="r()"></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px" id="rev-hint"></div>
+        </div>
+      </div>
+      <div class="invoice-only" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase">源泉徴収</span>
+          <button id="wh-toggle" onclick="toggleWithholding()" style="font-size:10px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:none;cursor:pointer;font-family:var(--sans);color:var(--muted);transition:all .15s">OFF</button>
+        </div>
+        <div id="wh-rate-wrap" style="display:none">
+          <div class="tax-row">
+            <label>税率</label>
+            <select id="wh-rate" onchange="r()">
+              <option value="0.1021">10.21%（100万円以下）</option>
+              <option value="0.2042">20.42%（100万円超）</option>
+            </select>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px" id="wh-hint"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sec" id="footer-sec">
+      <div class="sec-label">備考</div>
+      <div class="f"><label>備考</label><textarea id="note" placeholder="" oninput="r()" rows="2"></textarea></div>
+    </div>
+    <div class="sec" id="receipt-sec" style="display:none">
+      <div class="sec-label">領収内容</div>
+      <div class="f"><label>領収金額（税込・円）</label><input id="rc-amount" type="number" placeholder="100000" min="0" oninput="r()"></div>
+      <div class="f" id="rc-tax-wrap" style="display:none">
+        <label>消費税率（適格簡易請求書用）</label>
+        <select id="rc-tax" onchange="r()">
+          <option value="0.10">10%</option>
+          <option value="0.08">8%（軽減）</option>
+          <option value="0">非課税</option>
+        </select>
+      </div>
+      <div class="f"><label>但し書き</label><input id="rc-purpose" placeholder="映像制作費として" oninput="r()"></div>
+      <div class="f"><label>支払方法</label>
+        <select id="rc-paymethod" onchange="r()">
+          <option value="現金">現金</option>
+          <option value="銀行振込">銀行振込</option>
+          <option value="クレジットカード">クレジットカード</option>
+          <option value="電子マネー">電子マネー</option>
+          <option value="">記載なし</option>
+        </select>
+      </div>
+      <div class="f"><label>備考（任意）</label><input id="rc-note" placeholder="" oninput="r()"></div>
+    </div>    <div class="sec" id="contract-sec" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase">自分の立場</span>
+        <div style="display:flex;gap:4px">
+          <button id="role-otsu" onclick="setRole('otsu')" style="font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:white;cursor:pointer;font-family:var(--sans);transition:all .15s">乙（受託）</button>
+          <button id="role-ko" onclick="setRole('ko')" style="font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:var(--sans);transition:all .15s">甲（委託）</button>
+        </div>
+      </div>
+      <div class="sec-label">契約内容（基本）</div>
+      <div class="f"><label>業務内容</label><textarea id="c-work" placeholder="映像制作（モーショングラフィックス）" oninput="r()" rows="2"></textarea></div>
+      <div class="f"><label>契約期間</label><input id="c-period" placeholder="2026年4月1日 ～ 2026年6月30日" oninput="r()"></div>
+      <div class="f"><label>報酲額</label><input id="c-amount" placeholder="330,000円（税込）" oninput="r()"></div>
+      <div class="f"><label>支払条件</label><input id="c-payment" placeholder="納品翻月末日払い" oninput="r()"></div>
+      <div class="f"><label>著作権・権利</label><textarea id="c-rights" placeholder="成果物の著作権は検収完了・報酲受領後に甲へ移転する。" oninput="r()" rows="2"></textarea></div>
+      <div class="f"><label>秘密保持</label><textarea id="c-nda" placeholder="両者は業務上知り得た情報を第三者に開示しない。" oninput="r()" rows="2"></textarea></div>
+      <div class="f"><label>備考・特記</label><textarea id="c-note" oninput="r()" rows="2"></textarea></div>
+    </div>
+    <div class="sec" id="contract-opt-sec" style="display:none">
+      <div class="sec-label">追加条項</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:10px;font-weight:600;color:var(--muted)">分割払い</span>
+          <button id="c-opt-installment-toggle" class="c-opt-btn" onclick="toggleCOpt('installment',this)">OFF</button>
+        </div>
+        <div id="c-opt-installment-wrap" style="display:none">
+          <div class="g2">
+            <div class="f"><label>着手金（%）</label><input id="c-inst-pct" type="number" value="50" min="1" max="99" oninput="r()"></div>
+            <div class="f"><label>残金タイミング</label><input id="c-inst-timing" placeholder="納品後" oninput="r()"></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:10px;font-weight:600;color:var(--muted)">検収・修正回数</span>
+          <button id="c-opt-inspect-toggle" class="c-opt-btn" onclick="toggleCOpt('inspect',this)">OFF</button>
+        </div>
+        <div id="c-opt-inspect-wrap" style="display:none">
+          <div class="f"><label>無償修正回数</label><input id="c-revisions" type="number" value="3" min="1" oninput="r()"></div>
+          <div class="f"><label>検収期間（日）</label><input id="c-inspect-days" type="number" value="7" min="1" oninput="r()"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:10px;font-weight:600;color:var(--muted)">損害賠償上限</span>
+          <button id="c-opt-liability-toggle" class="c-opt-btn" onclick="toggleCOpt('liability',this)">OFF</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:10px;font-weight:600;color:var(--muted)">反社会的勢力排除</span>
+          <button id="c-opt-antisocial-toggle" class="c-opt-btn" onclick="toggleCOpt('antisocial',this)">OFF</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:10px;font-weight:600;color:var(--muted)">合意管轄</span>
+          <button id="c-opt-jurisdiction-toggle" class="c-opt-btn" onclick="toggleCOpt('jurisdiction',this)">OFF</button>
+        </div>
+        <div id="c-opt-jurisdiction-wrap" style="display:none">
+          <div class="f"><label>管轄裁判所（都市名）</label><input id="c-jurisdiction-city" placeholder="鳥取" oninput="r()"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:10px;font-weight:600;color:var(--muted)">協議条項</span>
+          <button id="c-opt-consult-toggle" class="c-opt-btn" onclick="toggleCOpt('consult',this)">OFF</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;padding-top:8px;border-top:1px dashed var(--border)">
+          <span style="font-size:10px;font-weight:600;color:var(--muted)">電子署名欄</span>
+          <button id="c-opt-esig-toggle" class="c-opt-btn" onclick="toggleCOpt('esig',this)">OFF</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:1rem">
+      <button class="btn-print" onclick="savePDF()">PDF保存</button>
+      <button class="btn-print" style="background:#3a5a3a" onmouseover="this.style.background='#2a4a2a'" onmouseout="this.style.background='#3a5a3a'" onclick="savePNG()" id="btn-png">PNG保存</button>
+    </div>
+  </div>
+  <div class="preview-area">
+    <div class="a4" id="sheet"></div>
+  </div>
+</div>
+<script>
+  const $ = id => document.getElementById(id);
+  const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const val = id => $(id)?.value || '';
+  const fmt = n => '¥' + Math.round(n).toLocaleString('ja-JP');
+  const fdate = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${y}年${+m}月${+d}日`; };
+  const addDays = (s,n) => { const d=new Date(s); d.setDate(d.getDate()+n); return d.toISOString().split('T')[0]; };
+  const todayStr = () => new Date().toISOString().split('T')[0];
+  const PROFILE_KEYS = ['fn','fa','fzip','ft','fe','bank','reg'];
+  let docType = 'invoice';
+  let invEnabled = false;
+  let stampEnabled = false;
+  let revEnabled = false;
+  let withholdingEnabled = false;
+  const cOpts = { installment:false, inspect:false, liability:false, antisocial:false, jurisdiction:false, consult:false, esig:false };
+  let contractRole = 'otsu';
+  let honorific = '御中';
+  function setHon(hon, btn) {
+    honorific = hon;
+    document.querySelectorAll('.hon-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    r();
+  }
+  function setRole(role) {
+    contractRole = role;
+    syncRoleUI();
+    r();
+  }
+  function syncRoleUI() {
+    const isKo = contractRole === 'ko';
+    $('role-ko').style.background = isKo ? 'var(--accent)' : 'none';
+    $('role-ko').style.color = isKo ? 'white' : 'var(--muted)';
+    $('role-ko').style.borderColor = isKo ? 'var(--accent)' : 'var(--border)';
+    $('role-otsu').style.background = isKo ? 'none' : 'var(--accent)';
+    $('role-otsu').style.color = isKo ? 'var(--muted)' : 'white';
+    $('role-otsu').style.borderColor = isKo ? 'var(--border)' : 'var(--accent)';
+  }
+  const _KN = ['〇','一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十'];
+  const toKanji = n => n <= 20 ? _KN[n] : String(n);
+  function syncCOptUI() {
+    Object.keys(cOpts).forEach(key => {
+      const btn = $('c-opt-' + key + '-toggle');
+      if (!btn) return;
+      const on = cOpts[key];
+      btn.textContent = on ? 'ON' : 'OFF';
+      btn.style.background = on ? 'var(--accent)' : 'none';
+      btn.style.color = on ? 'white' : 'var(--muted)';
+      btn.style.borderColor = on ? 'var(--accent)' : 'var(--border)';
+      const wrap = $('c-opt-' + key + '-wrap');
+      if (wrap) wrap.style.display = on ? '' : 'none';
+    });
+  }
+  function toggleCOpt(key, btn) {
+    cOpts[key] = !cOpts[key];
+    const on = cOpts[key];
+    btn.textContent = on ? 'ON' : 'OFF';
+    btn.style.background = on ? 'var(--accent)' : 'none';
+    btn.style.color = on ? 'white' : 'var(--muted)';
+    btn.style.borderColor = on ? 'var(--accent)' : 'var(--border)';
+    const wrap = $('c-opt-' + key + '-wrap');
+    if (wrap) wrap.style.display = on ? '' : 'none';
+    r();
+  }
+  function toggleRev() {
+    revEnabled = !revEnabled;
+    const btn = $('rev-toggle');
+    btn.textContent = revEnabled ? 'ON' : 'OFF';
+    btn.style.background = revEnabled ? 'var(--accent)' : 'none';
+    btn.style.color = revEnabled ? 'white' : 'var(--muted)';
+    btn.style.borderColor = revEnabled ? 'var(--accent)' : 'var(--border)';
+    $('rev-wrap').style.display = revEnabled ? '' : 'none';
+    r();
+  }
+  function toggleWithholding() {
+    withholdingEnabled = !withholdingEnabled;
+    const btn = $('wh-toggle');
+    btn.textContent = withholdingEnabled ? 'ON' : 'OFF';
+    btn.style.background = withholdingEnabled ? 'var(--accent)' : 'none';
+    btn.style.color = withholdingEnabled ? 'white' : 'var(--muted)';
+    btn.style.borderColor = withholdingEnabled ? 'var(--accent)' : 'var(--border)';
+    $('wh-rate-wrap').style.display = withholdingEnabled ? '' : 'none';
+    r();
+  }
+  function toggleInv() {
+    invEnabled = !invEnabled;
+    const btn = $('inv-toggle');
+    btn.textContent = invEnabled ? 'ON' : 'OFF';
+    btn.style.background = invEnabled ? 'var(--accent)' : 'none';
+    btn.style.color = invEnabled ? 'white' : 'var(--muted)';
+    btn.style.borderColor = invEnabled ? 'var(--accent)' : 'var(--border)';
+    $('inv-reg-wrap').style.display = invEnabled ? '' : 'none';
+    const rcTaxWrap = $('rc-tax-wrap');
+    if (rcTaxWrap) rcTaxWrap.style.display = invEnabled ? '' : 'none';
+    try { localStorage.setItem('inv_toggle', invEnabled ? '1' : '0'); } catch(e){}
+    r();
+  }
+  function toggleStamp() {
+    stampEnabled = !stampEnabled;
+    const btn = $('stamp-toggle');
+    btn.textContent = stampEnabled ? 'ON' : 'OFF';
+    btn.style.background = stampEnabled ? 'var(--accent)' : 'none';
+    btn.style.color = stampEnabled ? 'white' : 'var(--muted)';
+    btn.style.borderColor = stampEnabled ? 'var(--accent)' : 'var(--border)';
+    try { localStorage.setItem('stamp_toggle', stampEnabled ? '1' : '0'); } catch(e){}
+    r();
+  }
+  function stepNo(delta) {
+    const el = $('no');
+    const cur = el.value.trim();
+    const m = cur.match(/^(.*?)(\d+)$/);
+    if (!m) { el.value = cur + (delta > 0 ? '001' : ''); r(); return; }
+    const prefix = m[1];
+    const numPart = m[2];
+    const next = Math.max(1, parseInt(numPart, 10) + delta);
+    el.value = prefix + String(next).padStart(numPart.length, '0');
+    r();
+  }
+  function saveProfile() {
+    const profile = {};
+    PROFILE_KEYS.forEach(k => { profile[k] = $(k)?.value || ''; });
+    try { localStorage.setItem('invoice_profile', JSON.stringify(profile)); } catch(e){}
+    const btn = $('save-btn');
+    btn.textContent = '✓ 保存済み';
+    setTimeout(() => { btn.textContent = '保存'; }, 1500);
+  }
+  function loadProfile() {
+    try {
+      const raw = localStorage.getItem('invoice_profile');
+      if (raw) {
+        const profile = JSON.parse(raw);
+        PROFILE_KEYS.forEach(k => { if (profile[k] && $(k)) $(k).value = profile[k]; });
+      }
+      const tog = localStorage.getItem('inv_toggle');
+      if (tog === '1') toggleInv();
+      const stog = localStorage.getItem('stamp_toggle');
+      if (stog === '1') toggleStamp();
+    } catch(e){}
+  }
+  let items = [
+    { d:'???', q:1, p:50000 },
+    { d:'???', q:1, p:50000 },
+  ];
+  const DOC_CONFIG = {
+    invoice:  { title:'請　求　書', noLabel:'請求書番号', noVal:'INV-2026-001', toLabel:'請求先', fromLabel:'発行者', bannerLabel:'ご請求金額（税込）', dueShow:true,  validShow:false, deliveryShow:false, bankShow:true,  showTax:true,  showPrice:true  },
+    estimate: { title:'見　積　書', noLabel:'見積書番号', noVal:'EST-2026-001', toLabel:'見積先', fromLabel:'見積者', bannerLabel:'お見積金額（税込）', dueShow:false, validShow:true,  deliveryShow:false, bankShow:false, showTax:true,  showPrice:true  },
+    delivery: { title:'納　品　書', noLabel:'納品書番号',  noVal:'DLV-2026-001', toLabel:'納品先', fromLabel:'納品者', bannerLabel:'',                  dueShow:false, validShow:false, deliveryShow:true,  bankShow:false, showTax:false, showPrice:false },
+    order:    { title:'発　注　書', noLabel:'発注書番号', noVal:'ORD-2026-001', toLabel:'発注先', fromLabel:'発注者', bannerLabel:'発注金額（税込）',   dueShow:true,  validShow:false, deliveryShow:true,  bankShow:false, showTax:true,  showPrice:true  },
+    receipt:  { title:'領　収　書', noLabel:'領収書番号', noVal:'RCP-2026-001', toLabel:'支払者', fromLabel:'発行者', bannerLabel:'',                  dueShow:false, validShow:false, deliveryShow:false, bankShow:false, showTax:false, showPrice:false },
+    contract: { title:'業務委託契約書', noLabel:'契約番号', noVal:'CON-2026-001' },
+  };
+  function setDoc(type, btn) {
+    docType = type;
+    document.querySelectorAll('.doc-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const isContract = type === 'contract';
+    const isReceipt  = type === 'receipt';
+    $('items-sec').style.display      = (isContract || isReceipt) ? 'none' : '';
+    $('footer-sec').style.display     = (isContract || isReceipt) ? 'none' : '';
+    $('receipt-sec').style.display    = isReceipt  ? '' : 'none';
+    $('contract-sec').style.display   = isContract ? '' : 'none';
+    $('contract-opt-sec').style.display = isContract ? '' : 'none';
+    const showExtra = (type === 'invoice');
+    if (isContract) { syncCOptUI(); syncRoleUI(); }
+    if (!isContract) {
+      const cfg = DOC_CONFIG[type];
+      const noLabel = $('no-label');
+      noLabel.innerHTML = cfg.noLabel + ' <span style="font-weight:400;font-size:9px;color:var(--muted)">（空欄で非表示）</span>';
+      $('no').value = cfg.noVal;
+      $('to-label').textContent = cfg.toLabel;
+      $('from-label').textContent = cfg.fromLabel;
+      $('due-wrap').style.display      = cfg.dueShow      ? '' : 'none';
+      $('valid-wrap').style.display    = cfg.validShow    ? '' : 'none';
+      $('delivery-wrap').style.display = cfg.deliveryShow ? '' : 'none';
+      $('bank-wrap').style.display     = cfg.bankShow     ? '' : 'none';
+      $('tax-wrap').style.display      = cfg.showTax      ? '' : 'none';
+      const invOnlyBlocks = document.querySelectorAll('.invoice-only');
+      invOnlyBlocks.forEach(el => el.style.display = showExtra ? '' : 'none');
+    } else {
+      const noLabel = $('no-label');
+      noLabel.innerHTML = DOC_CONFIG.contract.noLabel + ' <span style="font-weight:400;font-size:9px;color:var(--muted)">（空欄で非表示）</span>';
+      $('no').value = DOC_CONFIG.contract.noVal;
+      $('to-label').textContent = '委託者（甲）';
+      $('from-label').textContent = '受託者（乙）';
+      $('due-wrap').style.display = 'none';
+      $('valid-wrap').style.display = 'none';
+      $('delivery-wrap').style.display = 'none';
+    }
+    renderList(); r();
+  }
+  window.addEventListener('DOMContentLoaded', () => {
+    loadProfile();
+    const t = todayStr();
+    $('date').value = t;
+    $('due').value = addDays(t, 30);
+    $('valid').value = addDays(t, 30);
+    $('delivery-date').value = t;
+    toggleRev();
+    renderList(); r();
+  });
+  function renderList() {
+    const isDelivery = docType === 'delivery';
+    $('ilist').innerHTML = items.map((it,i) => `
+      <div class="item-row" style="grid-template-columns:${isDelivery?'1fr 48px 44px 20px':'1fr 48px 72px 20px'}">
+        <input value="${esc(it.d)}" placeholder="品目名" oninput="items[${i}].d=this.value;r()">
+        <input type="number" value="${it.q}" min="1" oninput="items[${i}].q=parseFloat(this.value)||0;r()">
+        ${isDelivery
+          ? `<input value="${esc(it.u||'式')}" placeholder="式" oninput="items[${i}].u=this.value;r()" style="text-align:center">`
+          : `<input type="number" value="${it.p}" min="0" step="1000" oninput="items[${i}].p=parseFloat(this.value)||0;r()">`
+        }
+        <button class="btn-del" onclick="del(${i})">×</button>
+      </div>`).join('');
+    $('items-hd').innerHTML = isDelivery
+      ? '<span>内容</span><span style="text-align:right">数量</span><span style="text-align:center">単位</span><span></span>'
+      : '<span>内容</span><span style="text-align:right">数量</span><span style="text-align:right">単価（税抜）</span><span></span>';
+  }
+  function addItem() { items.push({d:'',q:1,p:0}); renderList(); r(); }
+  function del(i) { items.splice(i,1); renderList(); r(); }
+  function stampBox() {
+    return stampEnabled ? '<div class="stamp-box">印</div>' : '';
+  }
+</script><script>
+  function renderStandard() {
+    const cfg = DOC_CONFIG[docType];
+    const tax = parseFloat($('tax').value);
+    const sub = items.reduce((s,it)=>s+it.q*it.p, 0);
+    let dispSub, dispTax, dispTotal;
+    if (revEnabled && docType === 'invoice') {
+      const revTotal = parseFloat($('rev-total')?.value) || 0;
+      if (revTotal > 0) {
+        dispTotal = revTotal;
+        dispSub = tax > 0 ? Math.floor(revTotal / (1 + tax)) : revTotal;
+        dispTax = revTotal - dispSub;
+        const hint = $('rev-hint');
+        if (hint) hint.textContent = `税抜 ${fmt(dispSub)}　消費税 ${fmt(dispTax)}`;
+      } else {
+        dispTotal = sub + Math.floor(sub * tax);
+        dispSub = sub; dispTax = Math.floor(sub * tax);
+        const hint = $('rev-hint');
+        if (hint) hint.textContent = '';
+      }
+    } else {
+      dispSub = sub;
+      dispTax = Math.floor(sub * tax);
+      dispTotal = dispSub + dispTax;
+    }
+    const taxLbl = tax===.10?'消費税（10%）':tax===.08?'消費税（8%）':'消費税（非課税）';
+    const whRate = withholdingEnabled ? parseFloat($('wh-rate')?.value || '0.1021') : 0;
+    const whAmt = withholdingEnabled ? Math.floor(dispSub * whRate) : 0;
+    const netTotal = dispTotal - whAmt;
+    if (withholdingEnabled) {
+      const hint = $('wh-hint');
+      if (hint) hint.textContent = `源泉徴収額 ${fmt(whAmt)}　差引請求額 ${fmt(netTotal)}`;
+    }
+    const fn=val('fn')||'（発行者名）', tn=val('tn')||'（相手先）';
+    const fa=val('fa'),fzip=val('fzip'),ft=val('ft'),fe=val('fe'),reg=val('reg');
+    const fromExtra=[fzip?'〒'+fzip:'',fa,ft?'TEL: '+ft:'',fe,invEnabled&&reg?'登録番号: '+reg:''].filter(Boolean).map(esc).join('<br>');
+    const tzip=val('tzip');
+    const toExtra=[val('tp'),tzip?'〒'+tzip:'',val('ta')].filter(Boolean).map(esc).join('<br>');
+    const bank=val('bank'), note=val('note');
+    let rows;
+    if (revEnabled && docType === 'invoice' && sub > 0 && dispSub !== sub) {
+      const scale = dispSub / sub;
+      const scaledItems = items.map(it => ({ ...it, scaledP: Math.round(it.p * scale) }));
+      const scaledSubTotal = scaledItems.reduce((s, it) => s + it.scaledP * it.q, 0);
+      const diff = dispSub - scaledSubTotal;
+      if (scaledItems.length > 0) scaledItems[scaledItems.length - 1].scaledP += diff;
+      rows = scaledItems.map(it => `<tr><td>${esc(it.d)||'—'}</td><td>${it.q.toLocaleString()}</td><td>${fmt(it.scaledP)}</td><td>${fmt(it.scaledP * it.q)}</td></tr>`).join('');
+    } else {
+      rows = items.map(it=>`<tr><td>${esc(it.d)||'—'}</td><td>${it.q.toLocaleString()}</td><td>${fmt(it.p)}</td><td>${fmt(it.q*it.p)}</td></tr>`).join('');
+    }
+    const noVal = val('no');
+    let dateLines = `${noVal ? `<div>番号 <strong>${esc(noVal)}</strong></div>` : ''}<div>発行日 <strong>${fdate(val('date'))}</strong></div>`;
+    if (cfg.dueShow) dateLines += `<div>${docType==='order'?'支払条件':'支払期限'} <strong>${fdate(val('due'))}</strong></div>`;
+    if (cfg.validShow) dateLines += `<div>有効期限 <strong>${fdate(val('valid'))}</strong></div>`;
+    if (cfg.deliveryShow) dateLines += `<div>納品日 <strong>${fdate(val('delivery-date'))}</strong></div>`;
+    const totalsHtml = `<div class="inv-totals">
+        <div class="tot-row"><span>${invEnabled ? '小計（税抜）' : '小計'}</span><span>${fmt(dispSub)}</span></div>
+        ${invEnabled ? `<div class="tot-row" style="font-size:11px;color:var(--muted)"><span>消費税（${tax===.10?'10%':tax===.08?'8%':'0%'}）</span><span>${fmt(dispTax)}</span></div>` : ''}
+        <div class="tot-row"><span>${invEnabled ? '合計（税込）' : '合計'}</span><span>${fmt(dispTotal)}</span></div>
+        ${withholdingEnabled ? `<div class="tot-row" style="font-size:11px;color:var(--muted)"><span>源泉徴収額</span><span>−${fmt(whAmt)}</span></div><div class="tot-row" style="border-top:1.5px solid var(--text)"><span>差引請求額</span><span>${fmt(netTotal)}</span></div>` : ''}
+      </div>`;
+    return `
+      <div class="inv-top">
+        <div>
+          <div class="inv-doc-title">${cfg.title}</div>
+          ${invEnabled ? '<div style="font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:.05em">適格請求書（インボイス）</div>' : ''}
+        </div>
+        <div class="inv-meta-block">${dateLines}</div>
+      </div>
+      <div class="inv-parties">
+        <div>
+          <div class="pty-label">${cfg.toLabel}</div>
+          <div class="pty-name">${esc(tn)}${honorific ? " " + honorific : ""}</div>
+          ${toExtra?'<div class="pty-detail">'+toExtra+'</div>':''}
+        </div>
+        <div style="text-align:right">
+          <div class="pty-label">${cfg.fromLabel}</div>
+          <div class="pty-name">${esc(fn)}</div>
+          ${fromExtra?'<div class="pty-detail">'+fromExtra+'</div>':''}
+          <div class="stamp-row">${stampBox()}</div>
+        </div>
+      </div>
+      <div class="inv-banner">
+        <div class="banner-label">${withholdingEnabled ? '差引請求額' : invEnabled ? cfg.bannerLabel : cfg.bannerLabel.replace('（税込）','')}</div>
+        <div class="banner-amt">${fmt(withholdingEnabled ? netTotal : dispTotal)}</div>
+      </div>
+      <table class="inv-tbl">
+        <thead><tr><th>品目・内容</th><th>数量</th><th>${invEnabled ? '単価（税抜）' : '単価'}</th><th>金額</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${totalsHtml}
+      ${(bank||note)?'<div class="inv-footer">'+
+        (bank?'<div class="footer-block"><strong>振込先</strong>'+esc(bank).replace(/\n/g,'<br>')+'</div>':'<div></div>')+
+        (note?'<div class="footer-block"><strong>備考</strong>'+esc(note).replace(/\n/g,'<br>')+'</div>':'')+
+      '</div>':''}
+    `;
+  }
+</script><script>
+  function renderContract() {
+    const isKo = contractRole === 'ko';
+    const ko  = isKo ? (val('fn')||'（甲）') : (val('tn')||'（甲）');
+    const otsu= isKo ? (val('tn')||'（乙）') : (val('fn')||'（乙）');
+    const fa=val('fa'),fzip=val('fzip'),ft=val('ft'),fe=val('fe');
+    const work=val('c-work')||'（業務内容）';
+    const period=val('c-period')||'（契約期間）';
+    const amount=val('c-amount')||'（報酲額）';
+    const payment=val('c-payment')||'（支払条件）';
+    const rights=val('c-rights')||'成果物の著作権は検収完了・報酲受領後に甲へ移転する。';
+    const nda=val('c-nda')||'両者は業務上知り得た情報を第三者に開示しない。';
+    const cnote=val('c-note');
+    let artNum = 1;
+    const art = (title, body) => `<div class="article"><h2>第${toKanji(artNum++)}条（${title}）</h2>${body}</div>`;
+    const revisions = parseInt($('c-revisions')?.value||'3');
+    const inspectDays = parseInt($('c-inspect-days')?.value||'7');
+    const jCity = val('c-jurisdiction-city')||'鳥取';
+    const instPct = parseInt($('c-inst-pct')?.value||'50');
+    const instTiming = val('c-inst-timing')||'納品後';
+    const paymentBody = cOpts.installment
+      ? `<p>甲は乙に対し、本業務の対価として <strong>${esc(amount)}</strong> を支払う。<br>支払方法：着手金として報酲額の${instPct}%を契約締結後適速に、残金（${100-instPct}%）を${esc(instTiming)}に支払う。<br>支払条件：${esc(payment)}</p>`
+      : `<p>甲は乙に対し、本業務の対価として <strong>${esc(amount)}</strong> を支払う。<br>支払条件：${esc(payment)}</p>`;
+    const articles = `
+      ${art('業務内容', `<p>甲は乙に対し、次の業務を委託し、乙はこれを受託する。<br><strong>${esc(work)}</strong></p>`)}
+      ${art('契約期間', `<p>${esc(period)}</p>`)}
+      ${art('報酲及び支払', paymentBody)}
+      ${art('著作権・知的財産権', `<p>${esc(rights)}</p>`)}
+      ${art('秘密保持', `<p>${esc(nda)}</p>`)}
+      ${art('契約解除・中途解約', '<p>いずれかの当事者が本契約に違反した場合、相手方は書面による通知をもって本契約を解除でき、これにより生じた損害の賠償を請求できる。</p><p>甲が本契約を中途解約する場合、甲は乙に対し、解約時点までの作業に対する相応の報酲を支払うものとする。乙が中途解約する場合、乙は甲に生じた実損害害を賠償するものとする。</p>')}
+      ${cOpts.inspect ? art('検収・修正', `<p>甲は納品物受領後 <strong>${inspectDays}日以内</strong> に検収を行い、合否を乙に通知する。期間内に通知がない場合は検収合格とみなす。<br>乙は無償修正を <strong>${revisions}回</strong> まで対応する。それを超える修正は別途協議の上、追加費用を請求できる。</p>`) : ''}
+      ${cOpts.liability ? art('損害賠償', '<p>本契約に起因する損害賠償の上限は、当該業務の報酲額を上限とする。ただし、故意または重大な過失による場合はこの限りではない。</p>') : ''}
+      ${cOpts.antisocial ? art('反社会的勢力の排除', '<p>甲および乙は、自己が反社会的勢力でないこと、および将来にわたっても該当しないことを表明・保証する。いずれかが本条に違反した場合、相手方は催告なく契約を解除できる。</p>') : ''}
+      ${cOpts.consult ? art('協議事項', '<p>本契約に定めのない事項または解釈に疊義が生じた場合、両者は誠意をもって協議し解決する。</p>') : ''}
+      ${cOpts.jurisdiction ? art('合意管轄', `<p>本契約に関する紛争については、<strong>${esc(jCity)}地方裁判所</strong>を第一審の専属的合意管轄裁判所とする。</p>`) : ''}
+      ${cnote ? art('特記事項', `<p>${esc(cnote).replace(/\n/g,'<br>')}</p>`) : ''}
+    `;
+    const koDetail = isKo
+      ? [fzip?'〒'+fzip:'',fa,ft?'TEL: '+ft:'',fe].filter(Boolean).map(esc).join('<br>')
+      : [val('tzip')?'〒'+val('tzip'):'',val('ta')].filter(Boolean).map(esc).join('<br>');
+    const otsuDetail = isKo
+      ? [val('tzip')?'〒'+val('tzip'):'',val('ta')].filter(Boolean).map(esc).join('<br>')
+      : [fzip?'〒'+fzip:'',fa,ft?'TEL: '+ft:'',fe].filter(Boolean).map(esc).join('<br>');
+    return `
+      <div class="inv-top">
+        <div class="inv-doc-title">業務委託契約書</div>
+        <div class="inv-meta-block">
+          ${val('no') ? `<div>契約番号 <strong>${esc(val('no'))}</strong></div>` : ''}
+          <div>締結日 <strong>${fdate(val('date'))}</strong></div>
+        </div>
+      </div>
+      <div style="font-size:12px;line-height:1.9;margin-bottom:18px;color:var(--muted)">
+        <strong style="color:var(--text)">${esc(ko)}（以下「甲」）</strong>と
+        <strong style="color:var(--text)">${esc(otsu)}（以下「乙」）</strong>は、
+        以下のとおり業務委託契約を締結する。
+      </div>
+      <div class="contract-body">${articles}</div>
+      <div class="contract-sigs">
+        <div class="sig-block">
+          <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">甲（委託者）</div>
+          <div class="sig-name">${esc(ko)}</div>
+          ${koDetail?'<div style="font-size:11px;color:var(--muted)">'+koDetail+'</div>':''}
+          ${stampEnabled ? '<div class="sig-stamp">印</div>' : ''}
+          ${cOpts.esig ? '<div style="margin-top:10px;border:1px solid #bbb;border-radius:3px;padding:6px 10px;font-size:10px;color:#bbb;min-height:36px">電子署名欄</div>' : ''}
+        </div>
+        <div class="sig-block">
+          <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">乙（受託者）</div>
+          <div class="sig-name">${esc(otsu)}</div>
+          ${otsuDetail?'<div style="font-size:11px;color:var(--muted)">'+otsuDetail+'</div>':''}
+          ${stampEnabled ? '<div class="sig-stamp">印</div>' : ''}
+          ${cOpts.esig ? '<div style="margin-top:10px;border:1px solid #bbb;border-radius:3px;padding:6px 10px;font-size:10px;color:#bbb;min-height:36px">電子署名欄</div>' : ''}
+        </div>
+      </div>
+    `;
+  }
+</script><script>
+  function renderDelivery() {
+    const cfg = DOC_CONFIG.delivery;
+    const fn=val('fn')||'（納品者）', tn=val('tn')||'（納品先）';
+    const fa=val('fa'),fzip=val('fzip'),ft=val('ft'),fe=val('fe'),reg=val('reg');
+    const fromExtra=[fzip?'〒'+fzip:'',fa,ft?'TEL: '+ft:'',fe,invEnabled&&reg?'登録番号: '+reg:''].filter(Boolean).map(esc).join('<br>');
+    const tzip=val('tzip');
+    const toExtra=[val('tp'),tzip?'〒'+tzip:'',val('ta')].filter(Boolean).map(esc).join('<br>');
+    const note=val('note');
+    const noVal=val('no');
+    const deliveryDate = fdate(val('delivery-date'));
+    const rows = items.map(it=>`<tr>
+      <td>${esc(it.d)||'—'}</td>
+      <td style="text-align:right">${it.q.toLocaleString()}</td>
+      <td style="text-align:center">${esc(it.u||'式')}</td>
+    </tr>`).join('');
+    return `
+      <div class="inv-top">
+        <div><div class="inv-doc-title">${cfg.title}</div></div>
+        <div class="inv-meta-block">
+          ${noVal?'<div>番号 <strong>'+esc(noVal)+'</strong></div>':''}
+          <div>発行日 <strong>${fdate(val('date'))}</strong></div>
+          <div>納品日 <strong>${deliveryDate}</strong></div>
+        </div>
+      </div>
+      <div class="inv-parties">
+        <div>
+          <div class="pty-label">${cfg.toLabel}</div>
+          <div class="pty-name">${esc(tn)}${honorific ? " " + honorific : ""}</div>
+          ${toExtra?'<div class="pty-detail">'+toExtra+'</div>':''}
+        </div>
+        <div style="text-align:right">
+          <div class="pty-label">${cfg.fromLabel}</div>
+          <div class="pty-name">${esc(fn)}</div>
+          ${fromExtra?'<div class="pty-detail">'+fromExtra+'</div>':''}
+          <div class="stamp-row">${stampBox()}</div>
+        </div>
+      </div>
+      <div style="margin-bottom:18px;font-size:12.5px;color:var(--muted)">下記の通り納品いたします。</div>
+      <table class="inv-tbl">
+        <thead><tr><th>品目・内容</th><th style="text-align:right">数量</th><th style="text-align:center">単位</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="margin-top:14px;font-size:12px;color:var(--muted);text-align:right">以上、${items.length}件の納品となります。</div>
+      ${note?'<div class="inv-footer" style="margin-top:18px"><div class="footer-block"><strong>備考</strong>'+esc(note).replace(/\n/g,'<br>')+'</div></div>':''}
+    `;
+  }
+  function renderReceipt() {
+    const cfg = DOC_CONFIG.receipt;
+    const fn=val('fn')||'（発行者）', tn=val('tn')||'（支払者）';
+    const fa=val('fa'),fzip=val('fzip'),ft=val('ft'),fe=val('fe'),reg=val('reg');
+    const fromExtra=[fzip?'〒'+fzip:'',fa,ft?'TEL: '+ft:'',fe,invEnabled&&reg?'登録番号: '+reg:''].filter(Boolean).map(esc).join('<br>');
+    const noVal=val('no');
+    const rcAmt = parseFloat($('rc-amount')?.value)||0;
+    const rcPurpose = val('rc-purpose')||'映像制作費として';
+    const rcPayMethod = val('rc-paymethod');
+    const rcNote = val('rc-note');
+    const needsStamp = rcAmt >= 50000;
+    const rcTaxRate = parseFloat($('rc-tax')?.value ?? '0.10');
+    const rcTaxAmt = invEnabled ? Math.floor(rcAmt - rcAmt / (1 + rcTaxRate)) : 0;
+    const rcTaxLabel = rcTaxRate===0.10?'10%':rcTaxRate===0.08?'8%（軽減）':'非課税';
+    const taxBreakdown = invEnabled ? `
+      <div style="color:var(--muted);font-size:11px;padding-top:2px">消費税（${rcTaxLabel}）</div>
+      <div style="font-size:12px">${fmt(rcTaxAmt)}</div>` : '';
+    return `
+      <div class="inv-top">
+        <div><div class="inv-doc-title">${cfg.title}</div></div>
+        <div class="inv-meta-block">
+          ${noVal?'<div>番号 <strong>'+esc(noVal)+'</strong></div>':''}
+          <div>発行日 <strong>${fdate(val('date'))}</strong></div>
+        </div>
+      </div>
+      <div style="margin-bottom:24px">
+        <div class="pty-label">${cfg.toLabel}</div>
+        <div class="pty-name" style="font-size:17px">${esc(tn)}${honorific ? ' ' + honorific : ''}</div>
+      </div>
+      <div style="text-align:center;margin:32px 0 28px">
+        <div style="font-size:11px;color:var(--muted);letter-spacing:.1em;margin-bottom:10px">領　収　金　額</div>
+        <div style="font-size:42px;font-family:var(--serif);font-weight:600;letter-spacing:.05em;border-bottom:2.5px solid var(--text);display:inline-block;padding:0 40px 10px">${rcAmt>0?fmt(rcAmt):'¥—'}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:12px">上記の金額を正に領収いたしました。</div>
+      </div>
+      <div style="display:grid;grid-template-columns:80px 1fr;gap:8px 16px;font-size:12.5px;margin-bottom:32px;max-width:480px;margin-left:auto;margin-right:auto">
+        <div style="color:var(--muted);font-size:11px;padding-top:2px">但し書き</div>
+        <div>${esc(rcPurpose)}</div>
+        ${taxBreakdown}
+        ${rcPayMethod?'<div style="color:var(--muted);font-size:11px;padding-top:2px">支払方法</div><div>'+esc(rcPayMethod)+'</div>':''}
+        ${rcNote?'<div style="color:var(--muted);font-size:11px;padding-top:2px">備考</div><div>'+esc(rcNote)+'</div>':''}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:16px;border-top:.5px solid #ccc;padding-top:20px">
+        ${needsStamp ? '<div style="font-size:9px;color:#999;line-height:1.6;max-width:200px">※金額が5万円以上のため、<br>印刷物には収入印紙（200円）が必要です。<br>電子発行の場合は不要。</div>' : '<div></div>'}
+        <div style="display:flex;align-items:flex-start;gap:20px">
+          <div style="text-align:right;font-size:11.5px;line-height:2;color:var(--muted)">
+            <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px">${esc(fn)}</div>
+            ${fromExtra?'<div>'+fromExtra+'</div>':''}
+          </div>
+          ${stampEnabled?'<div class="stamp-box" style="margin-top:4px">印</div>':''}
+        </div>
+      </div>
+      ${invEnabled&&val('reg')?'<div style="margin-top:16px;font-size:10px;color:var(--muted);text-align:right;letter-spacing:.05em">適格請求書発行事業者 登録番号: '+esc(val('reg'))+'</div>':''}
+    `;
+  }
+  function r() {
+    if (docType === 'contract') $('sheet').innerHTML = renderContract();
+    else if (docType === 'delivery') $('sheet').innerHTML = renderDelivery();
+    else if (docType === 'receipt')  $('sheet').innerHTML = renderReceipt();
+    else $('sheet').innerHTML = renderStandard();
+  }
+  function savePDF() {
+    const btn = document.querySelector('.btn-print');
+    btn.textContent = '生成中…';
+    btn.disabled = true;
+    html2canvas($('sheet'), { scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 794, windowWidth: 794 }).then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+      const docName = (val('no') || docType) + '_' + val('date');
+      pdf.save(docName + '.pdf');
+    }).catch(e => {
+      alert('PDF生成エラー: ' + e.message);
+    }).finally(() => {
+      btn.textContent = 'PDF保存';
+      btn.disabled = false;
+    });
+  }
+  async function savePNG() {
+    const btn = $('btn-png');
+    btn.textContent = '生成中…';
+    btn.disabled = true;
+    try {
+      const canvas = await html2canvas($('sheet'), { scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 794, windowWidth: 794 });
+      const link = document.createElement('a');
+      const docName = (val('no') || docType) + '_' + val('date');
+      link.download = docName + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch(e) {
+      alert('PNG生成エラー: ' + e.message);
+    } finally {
+      btn.textContent = 'PNG保存';
+      btn.disabled = false;
+    }
+  }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</body>
+</html>
