@@ -193,6 +193,22 @@
         </div>
       </div>
     </div>
+    <div class="sec" id="order-sec" style="display:none">
+      <div class="sec-label" style="color:#1e3f80">フリーランス新法 第3条 対応項目</div>
+      <div class="f"><label>⑤ 提出先・納品場所</label><input id="order-place" placeholder="例: ✉ info@example.co.jp / 東京都渋谷区○○" oninput="r()"></div>
+      <div class="f"><label>⑥ 検収完了予定日</label><input id="inspect-date" type="date" oninput="r()"></div>
+      <div class="f"><label>⑧ 支払方法</label>
+        <select id="order-paymethod" onchange="r()">
+          <option value="">記載なし</option>
+          <option value="銀行振込">銀行振込</option>
+          <option value="現金">現金</option>
+          <option value="クレジットカード">クレジットカード</option>
+          <option value="電子マネー">電子マネー</option>
+          <option value="手形">手形</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+    </div>
     <div class="sec" id="footer-sec">
       <div class="sec-label">備考</div>
       <div class="f"><label>備考</label><textarea id="note" placeholder="" oninput="r()" rows="2"></textarea></div>
@@ -452,6 +468,7 @@
     $('receipt-sec').style.display    = isReceipt  ? '' : 'none';
     $('contract-sec').style.display   = isContract ? '' : 'none';
     $('contract-opt-sec').style.display = isContract ? '' : 'none';
+    $('order-sec').style.display         = (type === 'order') ? '' : 'none';
     const showExtra = (type === 'invoice');
     if (isContract) { syncCOptUI(); syncRoleUI(); }
     if (!isContract) {
@@ -566,6 +583,10 @@
     if (cfg.dueShow) dateLines += `<div>${docType==='order'?'支払条件':'支払期限'} <strong>${fdate(val('due'))}</strong></div>`;
     if (cfg.validShow) dateLines += `<div>有効期限 <strong>${fdate(val('valid'))}</strong></div>`;
     if (cfg.deliveryShow) dateLines += `<div>納品日 <strong>${fdate(val('delivery-date'))}</strong></div>`;
+  if (docType === 'order') {
+    const idate = val('inspect-date');
+    if (idate) dateLines += `<div>検収完了予定日 <strong>${fdate(idate)}</strong></div>`;
+  }
     const totalsHtml = `<div class="inv-totals">
         <div class="tot-row"><span>${invEnabled ? '小計（税抜）' : '小計'}</span><span>${fmt(dispSub)}</span></div>
         ${invEnabled ? `<div class="tot-row" style="font-size:11px;color:var(--muted)"><span>消費税（${tax===.10?'10%':tax===.08?'8%':'0%'}）</span><span>${fmt(dispTax)}</span></div>` : ''}
@@ -606,6 +627,15 @@
         (bank?'<div class="footer-block"><strong>振込先</strong>'+esc(bank).replace(/\n/g,'<br>')+'</div>':'<div></div>')+
         (note?'<div class="footer-block"><strong>備考</strong>'+esc(note).replace(/\n/g,'<br>')+'</div>':'')+
       '</div>':''}
+  ${docType==='order' ? (()=>{
+    const oPlace=val('order-place'),oPaym=val('order-paymethod');
+    if(!oPlace&&!oPaym) return '';
+    let h='<div class="inv-footer">';
+    h+=oPlace?'<div class="footer-block"><strong>提出先・納品場所</strong>'+esc(oPlace).replace(/\n/g,'<br>')+'</div>':'<div></div>';
+    h+=oPaym?'<div class="footer-block"><strong>支払方法</strong>'+esc(oPaym)+'</div>':'';
+    h+='</div>';
+    return h;
+  })():''}
     `;
   }
 </script><script>
