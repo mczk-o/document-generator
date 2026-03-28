@@ -115,14 +115,14 @@
         <div class="sec-label" id="from-label" style="border:none;margin:0;padding:0">発行者</div>
         <button onclick="saveProfile()" style="font-size:10px;padding:3px 8px;background:none;border:1px solid var(--border-mid);border-radius:4px;cursor:pointer;font-family:var(--sans);color:var(--muted);transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border-mid)';this.style.color='var(--muted)'" id="save-btn">保存</button>
       </div>
-      <div class="f"><label>事業者名 / 屋号</label><input id="fn" placeholder="みかづきデザイン" oninput="r()"></div>
-      <div class="f"><label>郵便番号</label><input id="fzip" placeholder="680-0000" maxlength="8" oninput="r()"></div>
-      <div class="f"><label>住所</label><input id="fa" placeholder="鳥取市○○町1-2-3" oninput="r()"></div>
+      <div class="f"><label>事業者名 / 屋号</label><input id="fn" placeholder="○○デザイン事務所" oninput="r()"></div>
+      <div class="f"><label>郵便番号</label><input id="fzip" placeholder="100-0000" maxlength="8" oninput="r()"></div>
+      <div class="f"><label>住所</label><input id="fa" placeholder="○○市○○町1-2-3" oninput="r()"></div>
       <div class="g2">
-        <div class="f"><label>TEL</label><input id="ft" placeholder="0857-XX-XXXX" oninput="r()"></div>
+        <div class="f"><label>TEL</label><input id="ft" placeholder="0X0-XXXX-XXXX" oninput="r()"></div>
         <div class="f"><label>Email</label><input id="fe" placeholder="your@email.com" oninput="r()"></div>
       </div>
-      <div class="f" id="bank-wrap"><label>振込先</label><textarea id="bank" placeholder="〇〇銀行 △△支店&#10;普通 1234567&#10;ミカヅキ タロウ" oninput="r()" onblur="saveProfile()"></textarea></div>
+      <div class="f" id="bank-wrap"><label>振込先</label><textarea id="bank" placeholder="〇〇銀行 △△支店&#10;普通 1234567&#10;ヤマダ タロウ" oninput="r()" onblur="saveProfile()"></textarea></div>
       <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <span style="font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase">インボイス登録番号</span>
@@ -270,7 +270,7 @@
           <button id="c-opt-jurisdiction-toggle" class="c-opt-btn" onclick="toggleCOpt('jurisdiction',this)">OFF</button>
         </div>
         <div id="c-opt-jurisdiction-wrap" style="display:none">
-          <div class="f"><label>管轄裁判所（都市名）</label><input id="c-jurisdiction-city" placeholder="鳥取" oninput="r()"></div>
+          <div class="f"><label>管轄裁判所（都市名）</label><input id="c-jurisdiction-city" placeholder="東京" oninput="r()"></div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between">
           <span style="font-size:10px;font-weight:600;color:var(--muted)">協議条項</span>
@@ -625,7 +625,7 @@
     const art = (title, body) => `<div class="article"><h2>第${toKanji(artNum++)}条（${title}）</h2>${body}</div>`;
     const revisions = parseInt($('c-revisions')?.value||'3');
     const inspectDays = parseInt($('c-inspect-days')?.value||'7');
-    const jCity = val('c-jurisdiction-city')||'鳥取';
+    const jCity = val('c-jurisdiction-city')||'東京';
     const instPct = parseInt($('c-inst-pct')?.value||'50');
     const instTiming = val('c-inst-timing')||'納品後';
     const paymentBody = cOpts.installment
